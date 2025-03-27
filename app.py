@@ -17,7 +17,7 @@ st.set_page_config(page_title='Insurance Data Analysis', layout='wide')
 @st.cache_data
 def load_data():
     # Replace with your actual data loading method
-    data = pd.read_csv("AutoInsuranceClaims2024")
+    data = pd.read_csv("AutoInsuranceClaims2024.csv")
     return data
 
 # Data Preprocessing
