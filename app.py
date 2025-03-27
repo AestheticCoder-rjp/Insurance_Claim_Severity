@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 import numpy as np
 
 # Page Configuration
-st.set_page_config(page_title="Insurance Analysis Dashboard", layout="wide")
+st.set_page_config(page_title="Isurance Analysis Dashboard", layout="wide")
 
 # Data Loading and Preprocessing
 @st.cache_data
