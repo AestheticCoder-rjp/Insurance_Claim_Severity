@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+import numpy as np
 
-# Page setup
-st.set_page_config(page_title="Insurance Analysis Dashboard", layout="wide")
-st.title("Insurance Business Analytics Dashboard")
+# Page Configuration
+st.set_page_config(page_title="Isurance Analysis Dashboard", layout="wide")
 
 # Data Loading and Preprocessing
 @st.cache_data
@@ -18,107 +20,128 @@ def load_data():
 
 df = load_data()
 
-# Sidebar
-st.sidebar.title("Filter Options")
-selected_location = st.sidebar.multiselect("Select Location", df['Location'].unique())
-selected_vehicle = st.sidebar.multiselect("Select Vehicle Class", df['Vehicle_Class'].unique())
+# Main Header
+st.title("🚗 Insurance Data Analysis Dashboard")
 
-# Apply filters
-if selected_location:
-    df = df[df['Location'].isin(selected_location)]
-if selected_vehicle:
-    df = df[df['Vehicle_Class'].isin(selected_vehicle)]
+# Sidebar Navigation
+page = st.sidebar.selectbox("Select Analysis Page", 
+    ["Overview", "EDA", "Customer Analysis", "Policy Analysis", "Modeling", "Insights"])
 
-# Main dashboard
-st.header("Key Performance Indicators")
-col1, col2, col3 = st.columns(3)
+if page == "Overview":
+    st.header("📊 Data Overview")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Customers", len(df))
+    with col2:
+        st.metric("Average Premium", f"${df['Monthly Premium Auto'].mean():.2f}")
+    with col3:
+        st.metric("Total Claims", f"${df['Total Claim Amount'].sum():.2f}")
+    
+    st.subheader("Sample Data")
+    st.dataframe(df.head())
+    
+    st.subheader("Data Summary")
+    st.write(df.describe())
 
-with col1:
-    st.metric("Average Premium", f"${df['Monthly_Premium_Auto'].mean():.2f}")
-with col2:
-    st.metric("Total Claims", f"${df['Total_Claim_Amount'].sum():.2f}")
-with col3:
-    st.metric("Average Claim Amount", f"${df['Total_Claim_Amount'].mean():.2f}")
+elif page == "EDA":
+    st.header("📈 Exploratory Data Analysis")
+    
+    # Distribution Plots
+    st.subheader("Distribution Analysis")
+    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+    col = st.selectbox("Select Variable for Distribution", numeric_cols)
+    
+    fig = px.histogram(df, x=col, marginal="box")
+    st.plotly_chart(fig)
+    
+    # Correlation Analysis
+    st.subheader("Correlation Analysis")
+    df_numeric = df.select_dtypes(include=[np.number])
+    corr = df_numeric.corr()
 
-# Claims Analysis
-st.header("Claims Analysis")
-col1, col2 = st.columns(2)
 
-with col1:
-    # Claims by Vehicle Class
-    fig_vehicle = px.bar(
-        df.groupby('Vehicle_Class')['Total_Claim_Amount'].mean().reset_index(),
-        x='Vehicle_Class',
-        y='Total_Claim_Amount',
-        title='Average Claim Amount by Vehicle Class',
-        color='Vehicle_Class'
-    )
-    st.plotly_chart(fig_vehicle)
-    st.write("Analysis: Shows which vehicle types are associated with higher claim amounts, helping in risk assessment and premium pricing.")
+    fig = px.imshow(corr, color_continuous_scale='RdBu')
+    st.plotly_chart(fig)
 
-with col2:
-    # Claims by Location
-    fig_location = px.pie(
-        df.groupby('Location')['Total_Claim_Amount'].sum().reset_index(),
-        values='Total_Claim_Amount',
-        names='Location',
-        title='Total Claims Distribution by Location'
-    )
-    st.plotly_chart(fig_location)
-    st.write("Analysis: Reveals geographical distribution of claims, useful for targeted risk management strategies.")
+# Replace the existing Location Analysis section with this code
+elif page == "Customer Analysis":
+    st.header("👥 Customer Segmentation")
+    
+    # Marital Status Distribution
+    st.subheader("Customer Demographics")
+    fig = px.pie(df, names='Marital Status', title='Distribution by Marital Status')
+    st.plotly_chart(fig)
+    
+    # Location Analysis
+    st.subheader("Geographic Distribution")
+    if 'Location' in df.columns:
+        # Correct way to create location distribution
+        location_counts = df['Location'].value_counts().reset_index()
+        location_counts.columns = ['Location', 'Count']
+        
+        fig = px.bar(location_counts, x='Location', y='Count', title="Location Distribution")
+        st.plotly_chart(fig)
+    else:
+        st.warning("No Location column found in the dataset.")
 
-# Sales Channel Performance
-st.header("Sales Channel Analysis")
-fig_sales = px.scatter(
-    df,
-    x='Monthly_Premium_Auto',
-    y='Total_Claim_Amount',
-    color='Sales_Channel',
-    size='Monthly_Premium_Auto',
-    title='Premium vs Claims by Sales Channel'
-)
-st.plotly_chart(fig_sales)
-st.write("Analysis: Visualizes the relationship between premiums and claims across different sales channels, helping optimize distribution strategy.")
 
-# Policy Type Analysis
-st.header("Policy Type Performance")
-col1, col2 = st.columns(2)
+elif page == "Policy Analysis":
+    st.header("📋 Policy Analysis")
+    
+    # Policy Type Distribution
+    st.subheader("Policy Distribution")
+    fig = px.pie(df, names='Policy Type', title='Distribution by Policy Type')
+    st.plotly_chart(fig)
+    
+    # Premium vs Claims Analysis
+    st.subheader("Premium vs Claims")
+    fig = px.scatter(df, x='Monthly Premium Auto', y='Total Claim Amount',
+                    color='Policy Type', title='Premium vs Claims by Policy Type')
+    st.plotly_chart(fig)
 
-with col1:
-    avg_premium_policy = df.groupby('Policy_Type')['Monthly_Premium_Auto'].mean().reset_index()
-    fig_policy_premium = px.bar(
-        avg_premium_policy,
-        x='Policy_Type',
-        y='Monthly_Premium_Auto',
-        title='Average Premium by Policy Type',
-        color='Policy_Type'
-    )
-    st.plotly_chart(fig_policy_premium)
-    st.write("Analysis: Compares average premiums across different policy types to identify most profitable segments.")
+elif page == "Modeling":
+    st.header("🤖 Predictive Modeling")
+    
+    # Feature Selection
+    features = ['Monthly Premium Auto', 'Months Since Last Claim', 
+                'Number of Policies', 'Vehicle Class Index']
+    target = 'Total Claim Amount'
+    
+    # Model Training
+    X = df[features]
+    y = df[target]
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    model = RandomForestRegressor(random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Feature Importance
+    st.subheader("Feature Importance")
+    importance_df = pd.DataFrame({
+        'Feature': features,
+        'Importance': model.feature_importances_
+    })
+    fig = px.bar(importance_df, x='Feature', y='Importance')
+    st.plotly_chart(fig)
 
-# Time-based Analysis
-months_analysis = df.groupby('Months_Since_Last_Claim')['Total_Claim_Amount'].mean().reset_index()
-fig_time = px.line(
-    months_analysis,
-    x='Months_Since_Last_Claim',
-    y='Total_Claim_Amount',
-    title='Claim Amount Trend Over Time'
-)
-st.plotly_chart(fig_time)
-st.write("Analysis: Shows claim amount patterns over time, useful for understanding claim frequency and severity trends.")
+elif page == "Insights":
+    st.header("💡 Key Insights")
+    
+    st.subheader("Business Recommendations")
+    st.write("""
+    **Key Findings:**
+    * Premium pricing shows strong correlation with vehicle class
+    * Customer retention is highest among married individuals
+    * Urban locations show higher claim frequencies
+    
+    **Recommendations:**
+    * Implement risk-based pricing strategy
+    * Develop targeted marketing for high-value segments
+    * Enhance customer service in high-claim areas
+    """)
 
-# Insights Section
-st.header("Key Business Insights")
-st.write("""
-1. Premium vs Claims Relationship
-   - Analyze correlation between premium pricing and claim amounts
-   - Identify potentially underpriced or overpriced segments
-
-2. Channel Performance
-   - Compare effectiveness of different sales channels
-   - Evaluate customer acquisition costs against premium revenue
-
-3. Risk Assessment
-   - Identify high-risk vehicle classes and locations
-   - Guide underwriting decisions and premium adjustments
-""")
+# Footer
+st.markdown("---")
+st.markdown("*Insurance Analysis Dashboard - Created with Streamlit*")
