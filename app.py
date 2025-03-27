@@ -57,7 +57,10 @@ elif page == "EDA":
     
     # Correlation Analysis
     st.subheader("Correlation Analysis")
-    corr = df.corr()
+    df_numeric = df.select_dtypes(include=[np.number])
+    corr = df_numeric.corr()
+
+
     fig = px.imshow(corr, color_continuous_scale='RdBu')
     st.plotly_chart(fig)
 
@@ -69,11 +72,18 @@ elif page == "Customer Analysis":
     fig = px.pie(df, names='Marital Status', title='Distribution by Marital Status')
     st.plotly_chart(fig)
     
-    # Location Analysis
-    st.subheader("Geographic Distribution")
-    fig = px.bar(df['Location'].value_counts().reset_index(), 
-                 x='index', y='Location', title='Customer Location Distribution')
-    st.plotly_chart(fig)
+    # # Location Analysis
+    # st.subheader("Geographic Distribution")
+    # fig = px.bar(df['Location'].value_counts().reset_index(), 
+    #              x='index', y='Location', title='Customer Location Distribution')
+    # st.plotly_chart(fig)
+    if 'Location' in df.columns and not df.empty:
+        df = df['Location'].dropna().astype(str).value_counts().reset_index()
+        fig = px.bar(df, x='index', y='Location', title="Location Distribution")
+        st.plotly_chart(fig)
+    else:
+        st.warning("No valid data to display.")
+
 
 elif page == "Policy Analysis":
     st.header("📋 Policy Analysis")
