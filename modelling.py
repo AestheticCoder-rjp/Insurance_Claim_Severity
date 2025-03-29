@@ -4,6 +4,9 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objs as go
 import plotly.subplots as sp
+import pickle
+import os
+from datetime import datetime
 
 # Scikit-learn imports
 from sklearn.model_selection import train_test_split
@@ -56,8 +59,28 @@ def run_advanced_modeling():
         
         return processed_df
     
-    # Preprocess the data
-    processed_df = preprocess_data(df)
+    # Define pickle file paths
+    models_file = 'trained_models.pkl'
+    feature_selection_file = 'feature_selection.pkl'
+    model_predictions_file = 'model_predictions.pkl'
+    results_file = 'model_results.pkl'
+    
+    # Add sidebar info and controls for model training
+    st.sidebar.title("Model Controls")
+    
+    # Check if models exist
+    models_exist = (os.path.exists(models_file) and 
+                    os.path.exists(feature_selection_file) and 
+                    os.path.exists(model_predictions_file) and 
+                    os.path.exists(results_file))
+    
+    if models_exist:
+        model_time = datetime.fromtimestamp(os.path.getmtime(models_file))
+        st.sidebar.success(f"Using saved models (trained on: {model_time.strftime('%Y-%m-%d %H:%M:%S')})")
+        force_retrain = st.sidebar.button("Retrain Models")
+    else:
+        st.sidebar.warning("No trained models found. Will train new models.")
+        force_retrain = True
     
     # Function to perform feature selection
     def perform_feature_selection(df, target_column):
@@ -110,35 +133,97 @@ def run_advanced_modeling():
             'original_columns': list(X.columns)
         }
     
-    # Perform Feature Selection
-    feature_selection_results = perform_feature_selection(processed_df, target_column)
+    # Load or train models based on existence and force_retrain flag
+    if not models_exist or force_retrain:
+        # Show training progress
+        with st.sidebar.status("Training models..."):
+            # Preprocess the data
+            processed_df = preprocess_data(df)
+            
+            # Perform Feature Selection
+            feature_selection_results = perform_feature_selection(processed_df, target_column)
+            st.sidebar.write("Feature selection complete")
+            
+            # Define Models
+            models = {}
+            
+            # XGBoost Model
+            if XGBOOST_AVAILABLE:
+                xgb_best = XGBRegressor(
+                    learning_rate=0.1, 
+                    max_depth=5, 
+                    n_estimators=100, 
+                    subsample=0.8,
+                    objective='reg:squarederror', 
+                    random_state=42
+                )
+                models["XGBoost"] = xgb_best
+            
+            # Random Forest Model
+            rf_best = RandomForestRegressor(
+                max_depth=20, 
+                min_samples_leaf=2, 
+                min_samples_split=2, 
+                n_estimators=200,
+                random_state=42
+            )
+            models["Random Forest"] = rf_best
+            
+            # Results storage
+            results = {}
+            model_predictions = {}
+            
+            # Train and evaluate models
+            for name, model in models.items():
+                st.sidebar.write(f"Training {name} model...")
+                # Fit model
+                model.fit(feature_selection_results['X_train_transformed'], feature_selection_results['y_train'])
+                
+                # Predictions
+                y_pred = model.predict(feature_selection_results['X_test_transformed'])
+                model_predictions[name] = y_pred
+                
+                # Compute metrics
+                results[name] = {
+                    "R² Score": r2_score(feature_selection_results['y_test'], y_pred),
+                    "Mean Absolute Error": mean_absolute_error(feature_selection_results['y_test'], y_pred),
+                    "Root Mean Square Error": np.sqrt(mean_squared_error(feature_selection_results['y_test'], y_pred))
+                }
+            
+            # Save models and results
+            st.sidebar.write("Saving models to disk...")
+            with open(models_file, 'wb') as f:
+                pickle.dump(models, f)
+            
+            with open(feature_selection_file, 'wb') as f:
+                pickle.dump(feature_selection_results, f)
+            
+            with open(model_predictions_file, 'wb') as f:
+                pickle.dump(model_predictions, f)
+            
+            with open(results_file, 'wb') as f:
+                pickle.dump(results, f)
+            
+            st.sidebar.success("Models trained and saved successfully!")
+    else:
+        # Load models if they exist
+        with st.sidebar.status("Loading saved models..."):
+            with open(models_file, 'rb') as f:
+                models = pickle.load(f)
+            
+            with open(feature_selection_file, 'rb') as f:
+                feature_selection_results = pickle.load(f)
+            
+            with open(model_predictions_file, 'rb') as f:
+                model_predictions = pickle.load(f)
+            
+            with open(results_file, 'rb') as f:
+                results = pickle.load(f)
+            
+            st.sidebar.success("Models loaded successfully!")
     
-    # Define Tuned Models
-    models = {}
-    
-    # XGBoost Model
-    xgb_best = XGBRegressor(
-        learning_rate=0.1, 
-        max_depth=5, 
-        n_estimators=100, 
-        subsample=0.8,
-        objective='reg:squarederror', 
-        random_state=42
-    )
-    
-    # Random Forest Model
-    rf_best = RandomForestRegressor(
-        max_depth=20, 
-        min_samples_leaf=2, 
-        min_samples_split=2, 
-        n_estimators=200,
-        random_state=42
-    )
-    
-    # Add models if XGBoost is available
-    if XGBOOST_AVAILABLE:
-        models["XGBoost"] = xgb_best
-    models["Random Forest"] = rf_best
+    # Convert results to DataFrame
+    results_df = pd.DataFrame({name: metrics for name, metrics in results.items()}).T
     
     # Tabs for Visualization
     tab1, tab2, tab3, tab4 = st.tabs([
@@ -148,34 +233,8 @@ def run_advanced_modeling():
         "Predict Claim Amount"
     ])
     
-    # For the metrics visualization in tab1, replace the existing plotting code with:
-    
-    
     with tab1:
         st.subheader("Model Performance Metrics")
-        
-        # Results storage
-        results = {}
-        model_predictions = {}
-        
-        # Train and evaluate models
-        for name, model in models.items():
-            # Fit model
-            model.fit(feature_selection_results['X_train_transformed'], feature_selection_results['y_train'])
-            
-            # Predictions
-            y_pred = model.predict(feature_selection_results['X_test_transformed'])
-            model_predictions[name] = y_pred
-            
-            # Compute metrics
-            results[name] = {
-                "R² Score": r2_score(feature_selection_results['y_test'], y_pred),
-                "Mean Absolute Error": mean_absolute_error(feature_selection_results['y_test'], y_pred),
-                "Root Mean Square Error": np.sqrt(mean_squared_error(feature_selection_results['y_test'], y_pred))
-            }
-        
-        # Convert results to DataFrame
-        results_df = pd.DataFrame(results).T
         
         # Define a color palette
         metric_colors = {
@@ -240,8 +299,6 @@ def run_advanced_modeling():
         
         # Display the results table
         st.dataframe(styled_df)
-
-
         
     with tab2:
         st.subheader("Feature Importance Analysis")
