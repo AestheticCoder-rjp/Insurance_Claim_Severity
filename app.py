@@ -213,7 +213,7 @@ def main():
     st.markdown("""
     <div class="app-title-container">
         <div>
-            <h1 class="app-title">AutoShield Intelligence</h1>
+            <h1 class="app-title">Insurance Intelligence</h1>
             <p class="app-subtitle">Comprehensive Auto Insurance Analytics Platform</p>
         </div>
     </div>
@@ -226,7 +226,7 @@ def main():
         # Navigation Menu
         selected = option_menu(
             menu_title="Navigation",
-            options=["Overview", "Vehicle Analysis", "Risk Assessment"],
+            options=["Overview", "Analysis", "Risk Assessment"],
             icons=["car-front", "bar-chart-fill", "shield-check"],
             menu_icon="menu-button-wide",
             default_index=0,
@@ -251,7 +251,7 @@ def main():
     # Page Routing
     if selected == "Overview":
         run_overview()
-    elif selected == "Vehicle Analysis":
+    elif selected == "Analysis":
         run_eda_analysis()
     elif selected == "Risk Assessment":
         run_advanced_modeling()
