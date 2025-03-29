@@ -6,3 +6,4 @@ scikit-learn
 streamlit_option_menu
 plotly
 extra-streamlit-components
+xgboost
