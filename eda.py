@@ -5,7 +5,7 @@ import numpy as np
 from utils.data_loader import load_data
 
 def run_eda_analysis():
-    st.header("📊 Exploratory Data Analysis & Insights")
+    st.header("Exploratory Data Analysis & Insights")
     
     # Load data
     df = load_data()

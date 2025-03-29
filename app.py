@@ -256,12 +256,7 @@ def main():
     elif selected == "Risk Assessment":
         run_advanced_modeling()
 
-    # Footer
-    st.markdown("""
-    <div class="footer">
-        © 2024 AutoShield Intelligence | Comprehensive Auto Insurance Analytics
-    </div>
-    """, unsafe_allow_html=True)
+
 
 # Run the app
 if __name__ == "__main__":
