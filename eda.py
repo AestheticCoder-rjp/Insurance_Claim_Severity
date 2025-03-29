@@ -54,33 +54,45 @@ def run_eda_analysis():
     with tab2:
         # Correlation Analysis
         st.subheader("Correlation Analysis")
-        df_numeric = df.select_dtypes(include=[np.number])
+
+        # Define specific numeric columns to include
+        selected_numeric_cols = ['Monthly Premium Auto', 'Income', 'Customer Lifetime Value', 'Months Since Last Claim', 'Total Claim Amount']
+
+        # Filter the dataset to only include the selected columns
+        df_numeric = df[selected_numeric_cols]
+
+        # Compute correlation
         corr = df_numeric.corr()
 
+        # Create a heatmap using Plotly
         fig_corr = px.imshow(corr, 
-                              color_continuous_scale='RdBu', 
-                              title="Correlation Heatmap")
+                            color_continuous_scale='RdBu', 
+                            title="Correlation Heatmap",
+                            labels=dict(color="Correlation"),
+                            x=df_numeric.columns,
+                            y=df_numeric.columns)
+
         st.plotly_chart(fig_corr)
-        
+
         # Detailed Correlation Insights
         st.subheader("Top Correlations")
-        # Get top correlations (excluding self-correlations)
-        corr_pairs = []
-        for i in range(len(corr.columns)):
-            for j in range(i+1, len(corr.columns)):
-                corr_pairs.append((
-                    corr.columns[i], 
-                    corr.columns[j], 
-                    abs(corr.iloc[i, j])
-                ))
-        
-        # Sort and display top correlations
+
+        # Extract top correlations (excluding self-correlations)
+        corr_pairs = [
+            (col1, col2, abs(corr.loc[col1, col2]))
+            for i, col1 in enumerate(corr.columns)
+            for j, col2 in enumerate(corr.columns)
+            if i < j  # Avoid self-correlations
+        ]
+
+        # Sort by absolute correlation value and get the top 5
         top_correlations = sorted(corr_pairs, key=lambda x: x[2], reverse=True)[:5]
-        correlation_text = "\n".join([
-            f"{pair[0]} - {pair[1]}: {pair[2]:.2f}" 
-            for pair in top_correlations
-        ])
-        st.text(correlation_text)
+
+        # Display top correlations
+        st.write("### Strongest Correlations")
+        for col1, col2, value in top_correlations:
+            st.write(f"📊 **{col1}** & **{col2}** → Correlation: `{value:.2f}`")
+
     
     with tab3:
         # Customer Segmentation
