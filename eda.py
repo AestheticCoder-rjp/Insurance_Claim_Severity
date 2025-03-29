@@ -91,7 +91,7 @@ def run_eda_analysis():
         # Display top correlations
         st.write("### Strongest Correlations")
         for col1, col2, value in top_correlations:
-            st.write(f"📊 **{col1}** & **{col2}** → Correlation: `{value:.2f}`")
+            st.write(f" **{col1}** & **{col2}** → Correlation: `{value:.2f}`")
 
     
     with tab3:
@@ -147,24 +147,7 @@ def run_eda_analysis():
                                   title='Premium vs Claims by Policy Type')
         st.plotly_chart(fig_premium)
         
-        # Feature Impact Visualization
-        st.subheader("Key Feature Analysis")
         
-        # Create a simple feature importance simulation
-        feature_impact = {
-            'Monthly Premium': 0.4,
-            'Vehicle Age': 0.25,
-            'Customer Age': 0.2,
-            'Policy Duration': 0.15
-        }
-        
-        fig_features = px.bar(
-            x=list(feature_impact.keys()), 
-            y=list(feature_impact.values()),
-            labels={'x': 'Features', 'y': 'Importance'},
-            title='Estimated Feature Impact on Claims'
-        )
-        st.plotly_chart(fig_features)
 
 # This allows the page to be run when imported
 if __name__ == "__main__":
