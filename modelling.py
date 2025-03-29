@@ -368,7 +368,7 @@ def run_advanced_modeling():
             # Predict using both models
             predictions = {}
             for name, model in models.items():
-                predictions[name] = model.predict(user_transformed)[0]
+                predictions[name] = "Rs.",model.predict(user_transformed)[0]
             
             # Display predictions
             st.subheader("Predicted Total Claim Amounts")
