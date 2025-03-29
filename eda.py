@@ -23,14 +23,21 @@ def run_eda_analysis():
     ])
     
     with tab1:
+        
         # Distribution Analysis
         st.subheader("Distribution Analysis")
-        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+
+        # Define specific columns to include
+        selected_numeric_cols = ['Monthly Premium Auto', 'Income', 'Customer Lifetime Value', 'Months Since Last Claim', 'Total Claim Amount']
+
+        # Ensure the columns exist in the dataset (to avoid errors)
+        numeric_cols = [col for col in selected_numeric_cols if col in df.columns]
+
         col = st.selectbox("Select Variable for Distribution", numeric_cols)
-        
-        fig_dist = px.histogram(df, x=col, marginal="box", 
-                                 title=f"Distribution of {col}")
+
+        fig_dist = px.histogram(df, x=col, marginal="box", title=f"Distribution of {col}")
         st.plotly_chart(fig_dist)
+
         
         # Additional insights
         st.subheader("Statistical Summary")
